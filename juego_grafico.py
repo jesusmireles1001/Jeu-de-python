@@ -7,9 +7,10 @@ import os
 
 pygame.init()
 
-# Dimensiones de la ventana
-ANCHO = 800
-ALTO = 600
+# --- CAMBIO 1: DETECTAR RESOLUCIÓN DEL MONITOR ---
+info_pantalla = pygame.display.Info()
+ANCHO = info_pantalla.current_w
+ALTO = info_pantalla.current_h
 
 # --- PALETA DE COLORES ---
 COLOR_CIELO = (135, 206, 235)      
@@ -21,7 +22,7 @@ COLOR_ROPA = (255, 0, 0)
 COLOR_HILO = (200, 200, 200)       
 COLOR_GANCHO = (50, 50, 50)        
 
-# Colores de interfaz y respaldo (si fallan las imágenes)
+# Colores de interfaz
 COLOR_BLANCO = (255, 255, 255)
 COLOR_ROJO = (255, 0, 0)
 COLOR_VERDE = (0, 200, 0)
@@ -37,8 +38,8 @@ COLOR_BARRA_RELLENO = (0, 255, 0)
 COLOR_BOTON = (0, 150, 0)
 COLOR_BOTON_HOVER = (0, 200, 0)
 
-# Configuración de pantalla
-pantalla = pygame.display.set_mode((ANCHO, ALTO))
+# --- CAMBIO 2: CONFIGURAR MODO PANTALLA COMPLETA ---
+pantalla = pygame.display.set_mode((ANCHO, ALTO), pygame.FULLSCREEN)
 pygame.display.set_caption("Juego de Pesca - BATALLA CONTRA EL PEZ GIGANTE")
 
 reloj = pygame.time.Clock()
@@ -63,10 +64,10 @@ pez_boss_capturado = None
 # Configuración del Hameçon (Gancho)
 HAMEZON_ANCHO = 25 
 HAMEZON_ALTO = 35
-HAMEZON_VELOCIDAD_HORIZONTAL = 7 
+HAMEZON_VELOCIDAD_HORIZONTAL = 9  # Aumenté un poco la velocidad para pantallas grandes
 HAMEZON_Y_MAX = ALTO - HAMEZON_ALTO 
 HAMEZON_Y_INICIAL = 100 
-VELOCIDAD_LANZAMIENTO = 8 
+VELOCIDAD_LANZAMIENTO = 10 # Aumenté velocidad vertical para compensar pantallas altas
 
 # Estados de la Caña
 CAÑA_ARRIBA = 0
@@ -76,7 +77,7 @@ estado_caña = CAÑA_ARRIBA
 
 ALTURA_SUPERFICIE = 130 
 
-# Definición del Botón Jugar
+# Definición del Botón Jugar (Centrado dinámicamente)
 BOTON_JUGAR_RECT = pygame.Rect(ANCHO//2 - 100, ALTO//2, 200, 60)
 fuente = pygame.font.SysFont("arial", 30)
 fuente_grande = pygame.font.SysFont("arial", 50, bold=True)
@@ -85,9 +86,7 @@ fuente_grande = pygame.font.SysFont("arial", 50, bold=True)
 # --- 2. GESTIÓN DE IMÁGENES ---
 
 def cargar_sprite(nombre_archivo, ancho, alto, color_respaldo=COLOR_BLANCO):
-    """Intenta cargar una imagen, si falla, usa un color."""
     ruta_completa = os.path.join("imagenes", nombre_archivo)
-    
     if os.path.exists(ruta_completa):
         try:
             imagen = pygame.image.load(ruta_completa).convert_alpha()
@@ -97,9 +96,7 @@ def cargar_sprite(nombre_archivo, ancho, alto, color_respaldo=COLOR_BLANCO):
         except Exception as e:
             print(f"Error al cargar {nombre_archivo}: {e}")
     
-    if color_respaldo is None:
-        return None
-
+    if color_respaldo is None: return None
     imagen = pygame.Surface([ancho if ancho else 50, alto if alto else 50])
     imagen.fill(color_respaldo)
     return imagen
@@ -123,7 +120,7 @@ img_mina = cargar_sprite("mina.png", 80, 80, COLOR_NEGRO)
 img_gancho = cargar_sprite("anzuelo.png", HAMEZON_ANCHO, HAMEZON_ALTO, COLOR_GANCHO)
 
 # 3. CARGA DE FONDO Y PESCADOR
-# MODIFICACIÓN AQUI: Calculamos el alto restando la superficie para que solo ocupe el agua
+# Se ajustará automáticamente al ancho y alto de tu pantalla completa
 img_fondo_oceanico = cargar_sprite("fondo.png", ANCHO, ALTO - ALTURA_SUPERFICIE, color_respaldo=None)
 img_pescador_bote = cargar_sprite("pescador_bote.png", 150, 100, color_respaldo=None)
 
@@ -167,6 +164,7 @@ class Pez(pygame.sprite.Sprite):
 
     def reset_posicion(self):
         self.velocidad = self.velocidad_base + random.uniform(0.5, 2)
+        # Ajustado para usar ALTO dinámico
         self.rect.y = random.randrange(ALTURA_SUPERFICIE + 40, ALTO - 50)
         self.direccion = random.choice([-1, 1])
         
@@ -240,14 +238,14 @@ grupo_peces = pygame.sprite.Group()
 grupo_minas = pygame.sprite.Group()
 grupo_boss = pygame.sprite.Group() 
 
-# -- Crear peces iniciales
-for _ in range(3): grupo_peces.add(Pez(img_pez_verde, 1, 2))
-for _ in range(2): grupo_peces.add(Pez(img_pez_nuevo1, 1, 2))
-for _ in range(2): grupo_peces.add(Pez(img_pez_nuevo2, 1, 2))
-for _ in range(2): grupo_peces.add(Pez(img_pez_nuevo3, 1, 2))
-for _ in range(4): grupo_peces.add(Pez(img_pez_rojo, 5, 4))
-for _ in range(1): grupo_peces.add(Pez(img_pez_dorado, 10, 7))
-for _ in range(1): grupo_minas.add(Mina())
+# Aumentamos un poco la cantidad de peces porque la pantalla ahora es más grande
+for _ in range(4): grupo_peces.add(Pez(img_pez_verde, 1, 2))
+for _ in range(3): grupo_peces.add(Pez(img_pez_nuevo1, 1, 2))
+for _ in range(3): grupo_peces.add(Pez(img_pez_nuevo2, 1, 2))
+for _ in range(3): grupo_peces.add(Pez(img_pez_nuevo3, 1, 2))
+for _ in range(5): grupo_peces.add(Pez(img_pez_rojo, 5, 4))
+for _ in range(2): grupo_peces.add(Pez(img_pez_dorado, 10, 7))
+for _ in range(2): grupo_minas.add(Mina())
 
 
 # --- 5. FUNCIONES DE DIBUJO Y LÓGICA ---
@@ -257,19 +255,15 @@ def mostrar_texto(pantalla, texto, color, x, y, fuente_usar=fuente):
     pantalla.blit(surf, (x, y))
 
 def dibujar_escenario():
-    # --- 1. FONDO (MODIFICADO) ---
-    
-    # Primero: Dibujamos siempre el CIELO (rectángulo sólido)
+    # --- 1. FONDO ---
+    # Cielo
     pygame.draw.rect(pantalla, COLOR_CIELO, (0, 0, ANCHO, ALTURA_SUPERFICIE))
     
-    # Segundo: Dibujamos el MAR
+    # Mar
     if img_fondo_oceanico:
-        # Colocamos la imagen debajo del cielo (offset Y = ALTURA_SUPERFICIE)
         pantalla.blit(img_fondo_oceanico, (0, ALTURA_SUPERFICIE))
     else:
-        # Si no carga la imagen, usamos colores sólidos
         pygame.draw.rect(pantalla, COLOR_AZUL_AGUA, (0, ALTURA_SUPERFICIE, ANCHO, ALTO - ALTURA_SUPERFICIE))
-        # Arena
         pygame.draw.rect(pantalla, COLOR_ARENA, (0, ALTO - 40, ANCHO, 40))
         for i in range(0, ANCHO, 50):
             pygame.draw.circle(pantalla, (210, 180, 140), (i + 20, ALTO - 20), 5)
@@ -301,10 +295,10 @@ def dibujar_escenario():
 
 def dibujar_menu_inicio():
     dibujar_escenario()
-    mostrar_texto(pantalla, "SUPER PESCA EXTREMA", COLOR_NEGRO, ANCHO//2 - 253, 103, fuente_grande)
-    mostrar_texto(pantalla, "SUPER PESCA EXTREMA", COLOR_AMARILLO, ANCHO//2 - 250, 100, fuente_grande)
-    mostrar_texto(pantalla, "Usa 'A' y 'D' para moverte", COLOR_BLANCO, ANCHO//2 - 150, 250)
-    mostrar_texto(pantalla, "Click Izquierdo para pescar", COLOR_BLANCO, ANCHO//2 - 160, 290)
+    mostrar_texto(pantalla, "SUPER PESCA EXTREMA", COLOR_NEGRO, ANCHO//2 - 253, ALTO//4 + 3, fuente_grande)
+    mostrar_texto(pantalla, "SUPER PESCA EXTREMA", COLOR_AMARILLO, ANCHO//2 - 250, ALTO//4, fuente_grande)
+    mostrar_texto(pantalla, "Usa 'A' y 'D' para moverte. ESC para salir.", COLOR_BLANCO, ANCHO//2 - 180, ALTO//2 - 50)
+    mostrar_texto(pantalla, "Click Izquierdo para pescar", COLOR_BLANCO, ANCHO//2 - 160, ALTO//2 - 10)
     
     mouse_pos = pygame.mouse.get_pos()
     color_btn = COLOR_BOTON
@@ -349,7 +343,7 @@ def pantalla_final(pantalla, score):
     pantalla.fill(COLOR_AZUL_AGUA)
     mostrar_texto(pantalla, "¡FIN DEL JUEGO!", COLOR_AMARILLO, ANCHO // 2 - 150, ALTO // 2 - 50, fuente_grande)
     mostrar_texto(pantalla, f"SCORE FINAL: {score}", COLOR_BLANCO, ANCHO // 2 - 100, ALTO // 2 + 20)
-    mostrar_texto(pantalla, "Presiona R para Reiniciar", COLOR_BLANCO, ANCHO // 2 - 150, ALTO // 2 + 80)
+    mostrar_texto(pantalla, "Presiona R para Reiniciar o ESC para salir", COLOR_BLANCO, ANCHO // 2 - 220, ALTO // 2 + 80)
     pygame.display.flip()
 
 def intentar_spawn_boss():
@@ -370,8 +364,12 @@ while ejecutando:
     tiempo_actual = pygame.time.get_ticks()
     
     for evento in pygame.event.get():
+        # --- CAMBIO 3: SALIR CON ESC O QUIT ---
         if evento.type == pygame.QUIT:
             ejecutando = False
+        if evento.type == pygame.KEYDOWN:
+            if evento.key == pygame.K_ESCAPE:
+                ejecutando = False
         
         if ESTADO_JUEGO == "MENU":
             if evento.type == pygame.MOUSEBUTTONDOWN and evento.button == 1:
