@@ -29,6 +29,9 @@ COLOR_DORADO = (255, 215, 0)
 COLOR_NEGRO = (0, 0, 0)
 COLOR_AMARILLO = (255, 255, 0)
 COLOR_LEGENDARIO = (255, 140, 0)
+COLOR_NUEVO_1 = (0, 255, 255) 
+COLOR_NUEVO_2 = (255, 0, 255) 
+COLOR_NUEVO_3 = (128, 0, 128) 
 COLOR_BARRA_FONDO = (100, 100, 100)
 COLOR_BARRA_RELLENO = (0, 255, 0)
 COLOR_BOTON = (0, 150, 0)
@@ -43,7 +46,7 @@ FPS = 60
 TIEMPO_TOTAL_SEGUNDOS = 60 
 
 # --- VARIABLES GLOBALES DEL JUEGO ---
-ESTADO_JUEGO = "MENU" # ESTADOS POSIBLES: "MENU", "JUGANDO", "FIN"
+ESTADO_JUEGO = "MENU" 
 tiempo_inicio = 0 
 SCORE = 0
 tiempo_desbloqueo = 0 
@@ -79,39 +82,50 @@ fuente = pygame.font.SysFont("arial", 30)
 fuente_grande = pygame.font.SysFont("arial", 50, bold=True)
 
 
-# --- 2. GESTIÓN DE IMÁGENES (CORREGIDO) ---
+# --- 2. GESTIÓN DE IMÁGENES ---
 
-def cargar_sprite(nombre_archivo, ancho, alto, color_respaldo):
-    """Intenta cargar una imagen desde la carpeta 'imagenes', si falla, usa un color."""
-    # Construir la ruta correcta: carpeta 'imagenes' + nombre del archivo
+def cargar_sprite(nombre_archivo, ancho, alto, color_respaldo=COLOR_BLANCO):
+    """Intenta cargar una imagen, si falla, usa un color."""
     ruta_completa = os.path.join("imagenes", nombre_archivo)
     
     if os.path.exists(ruta_completa):
         try:
             imagen = pygame.image.load(ruta_completa).convert_alpha()
-            imagen = pygame.transform.scale(imagen, (ancho, alto))
+            if ancho is not None and alto is not None:
+                imagen = pygame.transform.scale(imagen, (ancho, alto))
             return imagen
         except Exception as e:
             print(f"Error al cargar {nombre_archivo}: {e}")
-    else:
-        print(f"No se encontró la imagen: {ruta_completa}")
-        
-    # Si falla la carga, crear un rectángulo de color
-    imagen = pygame.Surface([ancho, alto])
+    
+    if color_respaldo is None:
+        return None
+
+    imagen = pygame.Surface([ancho if ancho else 50, alto if alto else 50])
     imagen.fill(color_respaldo)
     return imagen
 
-# Cargar assets
 print("--- Iniciando carga de recursos ---")
 
-# NOTA: En tu captura el pez verde tiene doble extensión (.png.png), por eso lo escribo así:
+# 1. CARGA DE PECES
 img_pez_verde = cargar_sprite("pez_verde.png.png", 60, 50, COLOR_VERDE)
+img_pez_nuevo1 = cargar_sprite("pez_nuevo1.png", 60, 50, COLOR_NUEVO_1)
+img_pez_nuevo2 = cargar_sprite("pez_nuevo2.png", 60, 50, COLOR_NUEVO_2)
+img_pez_nuevo3 = cargar_sprite("pez_nuevo3.png", 80, 110, COLOR_NUEVO_3)
+
+lista_imgs_basicas = [img_pez_verde, img_pez_nuevo1, img_pez_nuevo2, img_pez_nuevo3]
 
 img_pez_rojo = cargar_sprite("pez_rojo.png", 80, 60, COLOR_ROJO)
-img_pez_dorado = cargar_sprite("pez_dorado.png", 65, 45, COLOR_DORADO)
-img_boss = cargar_sprite("boss.png", 120, 70, COLOR_LEGENDARIO)
-img_mina = cargar_sprite("mina.png", 30, 30, COLOR_NEGRO)
-img_gancho = cargar_sprite("gancho.png", HAMEZON_ANCHO, HAMEZON_ALTO, COLOR_GANCHO)
+img_pez_dorado = cargar_sprite("pez_dorado.png", 105, 100, COLOR_DORADO)
+img_boss = cargar_sprite("boss.png", 250, 200, COLOR_LEGENDARIO)
+img_mina = cargar_sprite("mina.png", 80, 80, COLOR_NEGRO)
+
+# 2. CARGA DEL ANZUELO
+img_gancho = cargar_sprite("anzuelo.png", HAMEZON_ANCHO, HAMEZON_ALTO, COLOR_GANCHO)
+
+# 3. CARGA DE FONDO Y PESCADOR
+# MODIFICACIÓN AQUI: Calculamos el alto restando la superficie para que solo ocupe el agua
+img_fondo_oceanico = cargar_sprite("fondo.png", ANCHO, ALTO - ALTURA_SUPERFICIE, color_respaldo=None)
+img_pescador_bote = cargar_sprite("pescador_bote.png", 150, 100, color_respaldo=None)
 
 
 # --- 3. CLASES (SPRITES) ---
@@ -157,12 +171,10 @@ class Pez(pygame.sprite.Sprite):
         self.direccion = random.choice([-1, 1])
         
         if self.direccion == -1: 
-            # Va a la IZQUIERDA -> Imagen original
-            self.image = self.imagen_original
+            self.image = pygame.transform.flip(self.imagen_original, True, False)
             self.rect.x = random.randrange(ANCHO + 50, ANCHO + 300)
         else: 
-            # Va a la DERECHA -> Voltear imagen
-            self.image = pygame.transform.flip(self.imagen_original, True, False)
+            self.image = self.imagen_original
             self.rect.x = random.randrange(-300, -50)
         
     def update(self):
@@ -187,9 +199,9 @@ class PezLegendario(pygame.sprite.Sprite):
         if modo_batalla_boss: return 
         
         if self.direccion == -1: 
-            self.image = self.imagen_original
-        else: 
             self.image = pygame.transform.flip(self.imagen_original, True, False)
+        else: 
+            self.image = self.imagen_original
             
         self.rect.x += self.velocidad * self.direccion
         
@@ -228,8 +240,11 @@ grupo_peces = pygame.sprite.Group()
 grupo_minas = pygame.sprite.Group()
 grupo_boss = pygame.sprite.Group() 
 
-# Crear peces iniciales
-for _ in range(8): grupo_peces.add(Pez(img_pez_verde, 1, 2))
+# -- Crear peces iniciales
+for _ in range(3): grupo_peces.add(Pez(img_pez_verde, 1, 2))
+for _ in range(2): grupo_peces.add(Pez(img_pez_nuevo1, 1, 2))
+for _ in range(2): grupo_peces.add(Pez(img_pez_nuevo2, 1, 2))
+for _ in range(2): grupo_peces.add(Pez(img_pez_nuevo3, 1, 2))
 for _ in range(4): grupo_peces.add(Pez(img_pez_rojo, 5, 4))
 for _ in range(1): grupo_peces.add(Pez(img_pez_dorado, 10, 7))
 for _ in range(1): grupo_minas.add(Mina())
@@ -242,41 +257,55 @@ def mostrar_texto(pantalla, texto, color, x, y, fuente_usar=fuente):
     pantalla.blit(surf, (x, y))
 
 def dibujar_escenario():
-    # Cielo
+    # --- 1. FONDO (MODIFICADO) ---
+    
+    # Primero: Dibujamos siempre el CIELO (rectángulo sólido)
     pygame.draw.rect(pantalla, COLOR_CIELO, (0, 0, ANCHO, ALTURA_SUPERFICIE))
-    # Agua
-    pygame.draw.rect(pantalla, COLOR_AZUL_AGUA, (0, ALTURA_SUPERFICIE, ANCHO, ALTO - ALTURA_SUPERFICIE))
-    # Arena
-    pygame.draw.rect(pantalla, COLOR_ARENA, (0, ALTO - 40, ANCHO, 40))
-    for i in range(0, ANCHO, 50):
-        pygame.draw.circle(pantalla, (210, 180, 140), (i + 20, ALTO - 20), 5)
+    
+    # Segundo: Dibujamos el MAR
+    if img_fondo_oceanico:
+        # Colocamos la imagen debajo del cielo (offset Y = ALTURA_SUPERFICIE)
+        pantalla.blit(img_fondo_oceanico, (0, ALTURA_SUPERFICIE))
+    else:
+        # Si no carga la imagen, usamos colores sólidos
+        pygame.draw.rect(pantalla, COLOR_AZUL_AGUA, (0, ALTURA_SUPERFICIE, ANCHO, ALTO - ALTURA_SUPERFICIE))
+        # Arena
+        pygame.draw.rect(pantalla, COLOR_ARENA, (0, ALTO - 40, ANCHO, 40))
+        for i in range(0, ANCHO, 50):
+            pygame.draw.circle(pantalla, (210, 180, 140), (i + 20, ALTO - 20), 5)
 
-    # Barco
+    # --- 2. PESCADOR Y BOTE ---
     bx = hamezon.rect.centerx
     by = ALTURA_SUPERFICIE - 20 
-    pygame.draw.polygon(pantalla, COLOR_BARCO, [(bx-40, by), (bx+40, by), (bx+30, by+25), (bx-30, by+25)])
+
+    origen_hilo_x = bx + 20
+    origen_hilo_y = by - 30
     
-    # Pescador
-    pygame.draw.circle(pantalla, COLOR_PIEL, (bx, by-25), 8)
-    pygame.draw.rect(pantalla, COLOR_ROPA, (bx-8, by-17, 16, 17))
+    if img_pescador_bote:
+        origen_hilo_x = bx + 40 
+        origen_hilo_y = by - 40
+
+    pygame.draw.line(pantalla, COLOR_HILO, (origen_hilo_x, origen_hilo_y), (hamezon.rect.centerx, hamezon.rect.top), 2)
+
+    if img_pescador_bote:
+        rect_bote = img_pescador_bote.get_rect()
+        rect_bote.centerx = bx
+        rect_bote.bottom = ALTURA_SUPERFICIE + 10 
+        pantalla.blit(img_pescador_bote, rect_bote)
+    else:
+        pygame.draw.polygon(pantalla, COLOR_BARCO, [(bx-40, by), (bx+40, by), (bx+30, by+25), (bx-30, by+25)])
+        pygame.draw.circle(pantalla, COLOR_PIEL, (bx, by-25), 8)
+        pygame.draw.rect(pantalla, COLOR_ROPA, (bx-8, by-17, 16, 17))
+        pygame.draw.line(pantalla, (100, 50, 0), (bx+5, by-10), (bx+20, by-30), 3)
     
-    # Caña
-    pygame.draw.line(pantalla, (100, 50, 0), (bx+5, by-10), (bx+20, by-30), 3)
-    
-    # Hilo
-    pygame.draw.line(pantalla, COLOR_HILO, (bx+20, by-30), (hamezon.rect.centerx, hamezon.rect.top), 2)
 
 def dibujar_menu_inicio():
     dibujar_escenario()
-    
-    # Títulos con sombra
     mostrar_texto(pantalla, "SUPER PESCA EXTREMA", COLOR_NEGRO, ANCHO//2 - 253, 103, fuente_grande)
     mostrar_texto(pantalla, "SUPER PESCA EXTREMA", COLOR_AMARILLO, ANCHO//2 - 250, 100, fuente_grande)
-    
     mostrar_texto(pantalla, "Usa 'A' y 'D' para moverte", COLOR_BLANCO, ANCHO//2 - 150, 250)
     mostrar_texto(pantalla, "Click Izquierdo para pescar", COLOR_BLANCO, ANCHO//2 - 160, 290)
     
-    # Botón Jugar
     mouse_pos = pygame.mouse.get_pos()
     color_btn = COLOR_BOTON
     if BOTON_JUGAR_RECT.collidepoint(mouse_pos):
@@ -287,7 +316,6 @@ def dibujar_menu_inicio():
     mostrar_texto(pantalla, "JUGAR", COLOR_BLANCO, BOTON_JUGAR_RECT.x + 55, BOTON_JUGAR_RECT.y + 10, fuente)
 
 def dibujar_interfaz_batalla():
-    # Ventana de Boss
     rect_win = pygame.Rect(ANCHO//2 - 200, ALTO//2 - 100, 400, 200)
     pygame.draw.rect(pantalla, COLOR_NEGRO, rect_win)
     pygame.draw.rect(pantalla, COLOR_LEGENDARIO, rect_win, 5)
@@ -295,12 +323,10 @@ def dibujar_interfaz_batalla():
     mostrar_texto(pantalla, "¡PEZ GIGANTE!", COLOR_LEGENDARIO, ANCHO//2 - 100, ALTO//2 - 80, fuente_grande)
     mostrar_texto(pantalla, "¡CLICKS RAPIDOS!", COLOR_BLANCO, ANCHO//2 - 140, ALTO//2 - 20, fuente)
     
-    # Barra
     progreso = min(1, boss_clicks_actuales / BOSS_CLICKS_NECESARIOS)
     pygame.draw.rect(pantalla, COLOR_BARRA_FONDO, (ANCHO//2 - 150, ALTO//2 + 30, 300, 30))
     pygame.draw.rect(pantalla, COLOR_BARRA_RELLENO, (ANCHO//2 - 150, ALTO//2 + 30, 300 * progreso, 30))
     
-    # Tiempo restante boss
     tiempo_pasado = pygame.time.get_ticks() - boss_tiempo_inicio
     tiempo_restante = max(0, BOSS_TIEMPO_LIMITE_MS - tiempo_pasado) / 1000
     mostrar_texto(pantalla, f"{tiempo_restante:.1f}s", COLOR_ROJO, ANCHO//2 - 20, ALTO//2 + 70)
@@ -310,7 +336,6 @@ def reiniciar_juego():
     SCORE = 0
     ESTADO_JUEGO = "JUGANDO"
     tiempo_inicio = pygame.time.get_ticks()
-    
     tiempo_desbloqueo = 0 
     modo_batalla_boss = False
     estado_caña = CAÑA_ARRIBA
@@ -344,14 +369,12 @@ ejecutando = True
 while ejecutando:
     tiempo_actual = pygame.time.get_ticks()
     
-    # --- PROCESAR EVENTOS ---
     for evento in pygame.event.get():
         if evento.type == pygame.QUIT:
             ejecutando = False
         
         if ESTADO_JUEGO == "MENU":
             if evento.type == pygame.MOUSEBUTTONDOWN and evento.button == 1:
-                # Click en botón JUGAR
                 if BOTON_JUGAR_RECT.collidepoint(evento.pos):
                     ESTADO_JUEGO = "JUGANDO"
                     tiempo_inicio = pygame.time.get_ticks()
@@ -361,7 +384,6 @@ while ejecutando:
                 if evento.type == pygame.MOUSEBUTTONDOWN and evento.button == 1:
                     boss_clicks_actuales += 1
             else:
-                # Si no está bloqueado por mina
                 if tiempo_actual >= tiempo_desbloqueo:
                     if evento.type == pygame.MOUSEBUTTONDOWN and evento.button == 1:
                         if estado_caña == CAÑA_ARRIBA:
@@ -371,8 +393,6 @@ while ejecutando:
             if evento.type == pygame.KEYDOWN and evento.key == pygame.K_r:
                 reiniciar_juego()
 
-    # --- LÓGICA Y DIBUJO ---
-
     if ESTADO_JUEGO == "MENU":
         dibujar_menu_inicio()
         pygame.display.flip()
@@ -380,34 +400,25 @@ while ejecutando:
     elif ESTADO_JUEGO == "JUGANDO":
         intentar_spawn_boss()
         
-        # Updates
         hamezon.update() 
         grupo_peces.update()
         grupo_minas.update()
         grupo_boss.update() 
 
-        # --- Lógica de Batalla Boss ---
         if modo_batalla_boss:
             tiempo_pasado = tiempo_actual - boss_tiempo_inicio
-            
-            # Ganaste al Boss
             if boss_clicks_actuales >= BOSS_CLICKS_NECESARIOS:
                 SCORE += 500
                 pez_boss_capturado.kill() 
                 modo_batalla_boss = False
                 estado_caña = CAÑA_ARRIBA
                 hamezon.rect.y = HAMEZON_Y_INICIAL
-            
-            # Perdiste contra el Boss
             elif tiempo_pasado >= BOSS_TIEMPO_LIMITE_MS:
                 pez_boss_capturado.kill() 
                 modo_batalla_boss = False
                 estado_caña = CAÑA_ARRIBA
                 hamezon.rect.y = HAMEZON_Y_INICIAL
-        
-        # --- Lógica Normal ---
         else:
-            # Movimiento Vertical Caña
             if estado_caña == CAÑA_CAYENDO:
                 hamezon.rect.y += VELOCIDAD_LANZAMIENTO
                 if hamezon.rect.y >= HAMEZON_Y_MAX:
@@ -419,8 +430,6 @@ while ejecutando:
                     hamezon.rect.y = HAMEZON_Y_INICIAL 
                     estado_caña = CAÑA_ARRIBA
             
-            # COLISIONES
-            # 1. Boss
             hits_boss = pygame.sprite.spritecollide(hamezon, grupo_boss, False)
             if hits_boss:
                 if not modo_batalla_boss:
@@ -429,17 +438,18 @@ while ejecutando:
                     boss_tiempo_inicio = tiempo_actual
                     pez_boss_capturado = hits_boss[0]
 
-            # 2. Peces normales
             hits_peces = pygame.sprite.spritecollide(hamezon, grupo_peces, True) 
             for pez in hits_peces:
                 SCORE += pez.valor
-                # Regenerar
-                if pez.valor == 1: nuevo = Pez(img_pez_verde, 1, 2)
-                elif pez.valor == 10: nuevo = Pez(img_pez_dorado, 10, 7)
-                else: nuevo = Pez(img_pez_rojo, 5, 4)
+                if pez.valor == 1: 
+                    img_azar = random.choice(lista_imgs_basicas)
+                    nuevo = Pez(img_azar, 1, 2)
+                elif pez.valor == 10: 
+                    nuevo = Pez(img_pez_dorado, 10, 7)
+                else: 
+                    nuevo = Pez(img_pez_rojo, 5, 4)
                 grupo_peces.add(nuevo)
 
-            # 3. Minas
             hits_minas = pygame.sprite.spritecollide(hamezon, grupo_minas, True)
             for mina in hits_minas:
                 SCORE -= 30 
@@ -448,26 +458,21 @@ while ejecutando:
                 hamezon.rect.y = HAMEZON_Y_INICIAL
                 grupo_minas.add(Mina())
 
-        # Control de Tiempo Total
         tiempo_transcurrido = (tiempo_actual - tiempo_inicio) / 1000 
         if tiempo_transcurrido >= TIEMPO_TOTAL_SEGUNDOS:
             ESTADO_JUEGO = "FIN"
         
-        # --- DIBUJAR ---
         dibujar_escenario()
         
-        # Sprites
         pantalla.blit(hamezon.image, hamezon.rect) 
         grupo_peces.draw(pantalla)
         grupo_minas.draw(pantalla)
         grupo_boss.draw(pantalla) 
         
-        # HUD
         segundos_restantes = max(0, TIEMPO_TOTAL_SEGUNDOS - int(tiempo_transcurrido))
         mostrar_texto(pantalla, f"SCORE: {SCORE}", COLOR_AMARILLO, 10, 10)
         mostrar_texto(pantalla, f"TIEMPO: {segundos_restantes}s", COLOR_AMARILLO, ANCHO - 150, 10)
         
-        # Aviso bloqueo
         if tiempo_actual < tiempo_desbloqueo:
             segundos_bloqueo = (tiempo_desbloqueo - tiempo_actual) // 1000 + 1
             texto_aviso = f"¡BOOM! BLOQUEADO: {segundos_bloqueo}s"
@@ -476,7 +481,6 @@ while ejecutando:
             pygame.draw.rect(pantalla, COLOR_NEGRO, aviso_rect, 3)
             mostrar_texto(pantalla, texto_aviso, COLOR_BLANCO, ANCHO // 2 - 220, ALTO // 2 - 25, fuente_grande)
 
-        # Interfaz batalla
         if modo_batalla_boss:
             dibujar_interfaz_batalla()
 
@@ -487,6 +491,5 @@ while ejecutando:
 
     reloj.tick(FPS)
 
-# Salir
 pygame.quit()
 sys.exit()
