@@ -4,7 +4,6 @@ import random
 import os
 
 # --- 1. CONFIGURATION INITIALE ET CONSTANTES ---
-
 pygame.init()
 
 # --- DÉTECTION RÉSOLUTION ÉCRAN ---
@@ -176,7 +175,7 @@ class Pez(pygame.sprite.Sprite):
         self.rect.y = random.randrange(ALTURA_SUPERFICIE + 40, ALTO - 50)
         self.direccion = random.choice([-1, 1])
         
-        # --- DIRECTION INVERSÉE POUR LE FRANÇAIS ---
+        # --- DIRECTION INVERSÉE ---
         if self.direccion == -1: 
             # Vers la GAUCHE : image inversée (flip)
             self.image = pygame.transform.flip(self.imagen_original, True, False)
