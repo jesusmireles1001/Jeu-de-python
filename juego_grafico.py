@@ -3,16 +3,16 @@ import sys
 import random
 import os
 
-# --- 1. CONFIGURACIÓN INICIAL Y CONSTANTES ---
+# --- 1. CONFIGURATION INITIALE ET CONSTANTES ---
 
 pygame.init()
 
-# --- CAMBIO 1: DETECTAR RESOLUCIÓN DEL MONITOR ---
+# --- DÉTECTION RÉSOLUTION ÉCRAN ---
 info_pantalla = pygame.display.Info()
 ANCHO = info_pantalla.current_w
 ALTO = info_pantalla.current_h
 
-# --- PALETA DE COLORES ---
+# --- PALETTE DE COULEURS ---
 COLOR_CIELO = (135, 206, 235)      
 COLOR_AZUL_AGUA = (0, 105, 148)    
 COLOR_ARENA = (238, 214, 175)      
@@ -22,7 +22,7 @@ COLOR_ROPA = (255, 0, 0)
 COLOR_HILO = (200, 200, 200)       
 COLOR_GANCHO = (50, 50, 50)        
 
-# Colores de interfaz
+# Couleurs d'interface
 COLOR_BLANCO = (255, 255, 255)
 COLOR_ROJO = (255, 0, 0)
 COLOR_VERDE = (0, 200, 0)
@@ -38,21 +38,21 @@ COLOR_BARRA_RELLENO = (0, 255, 0)
 COLOR_BOTON = (0, 150, 0)
 COLOR_BOTON_HOVER = (0, 200, 0)
 
-# --- CAMBIO 2: CONFIGURAR MODO PANTALLA COMPLETA ---
+# --- CONFIGURATION FENÊTRE PLEIN ÉCRAN ---
 pantalla = pygame.display.set_mode((ANCHO, ALTO), pygame.FULLSCREEN)
-pygame.display.set_caption("Juego de Pesca - BATALLA CONTRA EL PEZ GIGANTE")
+pygame.display.set_caption("Jeu de Pêche - BATAILLE CONTRE LE POISSON GÉANT")
 
 reloj = pygame.time.Clock()
 FPS = 60
 TIEMPO_TOTAL_SEGUNDOS = 60 
 
-# --- VARIABLES GLOBALES DEL JUEGO ---
+# --- VARIABLES GLOBALES DU JEU ---
 ESTADO_JUEGO = "MENU" 
 tiempo_inicio = 0 
 SCORE = 0
 tiempo_desbloqueo = 0 
 
-# --- VARIABLES DEL JEFE (BOSS) ---
+# --- VARIABLES DU BOSS ---
 BOSS_CLICKS_NECESARIOS = 50
 BOSS_TIEMPO_LIMITE_MS = 8000 
 
@@ -61,15 +61,15 @@ boss_clicks_actuales = 0
 boss_tiempo_inicio = 0       
 pez_boss_capturado = None     
 
-# Configuración del Hameçon (Gancho)
+# Configuration Hameçon
 HAMEZON_ANCHO = 25 
 HAMEZON_ALTO = 35
-HAMEZON_VELOCIDAD_HORIZONTAL = 9  # Aumenté un poco la velocidad para pantallas grandes
+HAMEZON_VELOCIDAD_HORIZONTAL = 9  
 HAMEZON_Y_MAX = ALTO - HAMEZON_ALTO 
 HAMEZON_Y_INICIAL = 100 
-VELOCIDAD_LANZAMIENTO = 10 # Aumenté velocidad vertical para compensar pantallas altas
+VELOCIDAD_LANZAMIENTO = 10 
 
-# Estados de la Caña
+# États de la Canne
 CAÑA_ARRIBA = 0
 CAÑA_CAYENDO = 1
 CAÑA_SUBIENDO = 2
@@ -77,13 +77,13 @@ estado_caña = CAÑA_ARRIBA
 
 ALTURA_SUPERFICIE = 130 
 
-# Definición del Botón Jugar (Centrado dinámicamente)
-BOTON_JUGAR_RECT = pygame.Rect(ANCHO//2 - 100, ALTO//2, 200, 60)
+# Bouton JOUER
+BOTON_JUGAR_RECT = pygame.Rect(ANCHO//2 - 100, ALTO//2 - 50, 200, 60)
 fuente = pygame.font.SysFont("arial", 30)
 fuente_grande = pygame.font.SysFont("arial", 50, bold=True)
 
 
-# --- 2. GESTIÓN DE IMÁGENES ---
+# --- 2. GESTION DES IMAGES ---
 
 def cargar_sprite(nombre_archivo, ancho, alto, color_respaldo=COLOR_BLANCO):
     ruta_completa = os.path.join("imagenes", nombre_archivo)
@@ -94,38 +94,47 @@ def cargar_sprite(nombre_archivo, ancho, alto, color_respaldo=COLOR_BLANCO):
                 imagen = pygame.transform.scale(imagen, (ancho, alto))
             return imagen
         except Exception as e:
-            print(f"Error al cargar {nombre_archivo}: {e}")
+            print(f"Erreur chargement {nombre_archivo}: {e}")
     
+    if os.path.exists(nombre_archivo):
+         try:
+            imagen = pygame.image.load(nombre_archivo).convert_alpha()
+            if ancho is not None and alto is not None:
+                imagen = pygame.transform.scale(imagen, (ancho, alto))
+            return imagen
+         except: pass
+
     if color_respaldo is None: return None
     imagen = pygame.Surface([ancho if ancho else 50, alto if alto else 50])
     imagen.fill(color_respaldo)
     return imagen
 
-print("--- Iniciando carga de recursos ---")
+print("--- Chargement des ressources ---")
 
-# 1. CARGA DE PECES
+# 1. POISSONS
 img_pez_verde = cargar_sprite("pez_verde.png.png", 60, 50, COLOR_VERDE)
 img_pez_nuevo1 = cargar_sprite("pez_nuevo1.png", 60, 50, COLOR_NUEVO_1)
 img_pez_nuevo2 = cargar_sprite("pez_nuevo2.png", 60, 50, COLOR_NUEVO_2)
 img_pez_nuevo3 = cargar_sprite("pez_nuevo3.png", 80, 110, COLOR_NUEVO_3)
 
 lista_imgs_basicas = [img_pez_verde, img_pez_nuevo1, img_pez_nuevo2, img_pez_nuevo3]
+lista_imgs_basicas = [img for img in lista_imgs_basicas if img is not None]
+if not lista_imgs_basicas: lista_imgs_basicas = [img_pez_verde] 
 
 img_pez_rojo = cargar_sprite("pez_rojo.png", 80, 60, COLOR_ROJO)
 img_pez_dorado = cargar_sprite("pez_dorado.png", 105, 100, COLOR_DORADO)
 img_boss = cargar_sprite("boss.png", 250, 200, COLOR_LEGENDARIO)
 img_mina = cargar_sprite("mina.png", 80, 80, COLOR_NEGRO)
 
-# 2. CARGA DEL ANZUELO
-img_gancho = cargar_sprite("anzuelo.png", HAMEZON_ANCHO, HAMEZON_ALTO, COLOR_GANCHO)
+# 2. HAMEÇON
+img_gancho = cargar_sprite("gancho.png", HAMEZON_ANCHO, HAMEZON_ALTO, COLOR_GANCHO)
 
-# 3. CARGA DE FONDO Y PESCADOR
-# Se ajustará automáticamente al ancho y alto de tu pantalla completa
+# 3. FOND ET PÊCHEUR
 img_fondo_oceanico = cargar_sprite("fondo.png", ANCHO, ALTO - ALTURA_SUPERFICIE, color_respaldo=None)
 img_pescador_bote = cargar_sprite("pescador_bote.png", 150, 100, color_respaldo=None)
 
 
-# --- 3. CLASES (SPRITES) ---
+# --- 3. CLASSES (SPRITES) ---
 
 class Hamezon(pygame.sprite.Sprite):
     def __init__(self, x, y, ancho, alto, imagen, velocidad_horizontal, ancho_pantalla):
@@ -164,14 +173,16 @@ class Pez(pygame.sprite.Sprite):
 
     def reset_posicion(self):
         self.velocidad = self.velocidad_base + random.uniform(0.5, 2)
-        # Ajustado para usar ALTO dinámico
         self.rect.y = random.randrange(ALTURA_SUPERFICIE + 40, ALTO - 50)
         self.direccion = random.choice([-1, 1])
         
+        # --- DIRECTION INVERSÉE POUR LE FRANÇAIS ---
         if self.direccion == -1: 
+            # Vers la GAUCHE : image inversée (flip)
             self.image = pygame.transform.flip(self.imagen_original, True, False)
             self.rect.x = random.randrange(ANCHO + 50, ANCHO + 300)
         else: 
+            # Vers la DROITE : image originale
             self.image = self.imagen_original
             self.rect.x = random.randrange(-300, -50)
         
@@ -196,9 +207,12 @@ class PezLegendario(pygame.sprite.Sprite):
     def update(self):
         if modo_batalla_boss: return 
         
+        # --- DIRECTION BOSS INVERSÉE ---
         if self.direccion == -1: 
+            # GAUCHE : Image inversée (flip)
             self.image = pygame.transform.flip(self.imagen_original, True, False)
         else: 
+            # DROITE : Image originale
             self.image = self.imagen_original
             
         self.rect.x += self.velocidad * self.direccion
@@ -229,7 +243,7 @@ class Mina(pygame.sprite.Sprite):
         elif self.direccion == 1 and self.rect.left > ANCHO: self.reset_posicion()
 
 
-# --- 4. CREACIÓN DE GRUPOS ---
+# --- 4. CRÉATION DES GROUPES ---
 
 hamezon = Hamezon(ANCHO // 2 - HAMEZON_ANCHO // 2, HAMEZON_Y_INICIAL, HAMEZON_ANCHO, HAMEZON_ALTO, 
                   img_gancho, HAMEZON_VELOCIDAD_HORIZONTAL, ANCHO)
@@ -238,28 +252,24 @@ grupo_peces = pygame.sprite.Group()
 grupo_minas = pygame.sprite.Group()
 grupo_boss = pygame.sprite.Group() 
 
-# Aumentamos un poco la cantidad de peces porque la pantalla ahora es más grande
-for _ in range(4): grupo_peces.add(Pez(img_pez_verde, 1, 2))
-for _ in range(3): grupo_peces.add(Pez(img_pez_nuevo1, 1, 2))
-for _ in range(3): grupo_peces.add(Pez(img_pez_nuevo2, 1, 2))
-for _ in range(3): grupo_peces.add(Pez(img_pez_nuevo3, 1, 2))
+for _ in range(8): 
+    img = random.choice(lista_imgs_basicas)
+    grupo_peces.add(Pez(img, 1, 2))
 for _ in range(5): grupo_peces.add(Pez(img_pez_rojo, 5, 4))
 for _ in range(2): grupo_peces.add(Pez(img_pez_dorado, 10, 7))
 for _ in range(2): grupo_minas.add(Mina())
 
 
-# --- 5. FUNCIONES DE DIBUJO Y LÓGICA ---
+# --- 5. FONCTIONS D'AFFICHAGE ET LOGIQUE ---
 
 def mostrar_texto(pantalla, texto, color, x, y, fuente_usar=fuente):
     surf = fuente_usar.render(texto, True, color)
     pantalla.blit(surf, (x, y))
 
 def dibujar_escenario():
-    # --- 1. FONDO ---
-    # Cielo
+    # --- 1. FOND ---
     pygame.draw.rect(pantalla, COLOR_CIELO, (0, 0, ANCHO, ALTURA_SUPERFICIE))
     
-    # Mar
     if img_fondo_oceanico:
         pantalla.blit(img_fondo_oceanico, (0, ALTURA_SUPERFICIE))
     else:
@@ -268,7 +278,7 @@ def dibujar_escenario():
         for i in range(0, ANCHO, 50):
             pygame.draw.circle(pantalla, (210, 180, 140), (i + 20, ALTO - 20), 5)
 
-    # --- 2. PESCADOR Y BOTE ---
+    # --- 2. PÊCHEUR ET BATEAU ---
     bx = hamezon.rect.centerx
     by = ALTURA_SUPERFICIE - 20 
 
@@ -295,11 +305,18 @@ def dibujar_escenario():
 
 def dibujar_menu_inicio():
     dibujar_escenario()
-    mostrar_texto(pantalla, "SUPER PESCA EXTREMA", COLOR_NEGRO, ANCHO//2 - 253, ALTO//4 + 3, fuente_grande)
-    mostrar_texto(pantalla, "SUPER PESCA EXTREMA", COLOR_AMARILLO, ANCHO//2 - 250, ALTO//4, fuente_grande)
-    mostrar_texto(pantalla, "Usa 'A' y 'D' para moverte. ESC para salir.", COLOR_BLANCO, ANCHO//2 - 180, ALTO//2 - 50)
-    mostrar_texto(pantalla, "Click Izquierdo para pescar", COLOR_BLANCO, ANCHO//2 - 160, ALTO//2 - 10)
     
+    # Titre
+    mostrar_texto(pantalla, "SUPER PÊCHE EXTRÊME", COLOR_NEGRO, ANCHO//2 - 253, ALTO//4 + 3, fuente_grande)
+    mostrar_texto(pantalla, "SUPER PÊCHE EXTRÊME", COLOR_AMARILLO, ANCHO//2 - 250, ALTO//4, fuente_grande)
+    
+    # Instructions
+    y_instrucciones = BOTON_JUGAR_RECT.bottom + 40
+    
+    mostrar_texto(pantalla, "Utilisez 'A' et 'D' pour bouger. ESC pour quitter.", COLOR_BLANCO, ANCHO//2 - 220, y_instrucciones)
+    mostrar_texto(pantalla, "Clic Gauche pour pêcher", COLOR_BLANCO, ANCHO//2 - 160, y_instrucciones + 40)
+    
+    # BOUTON JOUER
     mouse_pos = pygame.mouse.get_pos()
     color_btn = COLOR_BOTON
     if BOTON_JUGAR_RECT.collidepoint(mouse_pos):
@@ -307,15 +324,15 @@ def dibujar_menu_inicio():
         
     pygame.draw.rect(pantalla, color_btn, BOTON_JUGAR_RECT, border_radius=10)
     pygame.draw.rect(pantalla, COLOR_BLANCO, BOTON_JUGAR_RECT, 3, border_radius=10)
-    mostrar_texto(pantalla, "JUGAR", COLOR_BLANCO, BOTON_JUGAR_RECT.x + 55, BOTON_JUGAR_RECT.y + 10, fuente)
+    mostrar_texto(pantalla, "JOUER", COLOR_BLANCO, BOTON_JUGAR_RECT.x + 55, BOTON_JUGAR_RECT.y + 10, fuente)
 
 def dibujar_interfaz_batalla():
     rect_win = pygame.Rect(ANCHO//2 - 200, ALTO//2 - 100, 400, 200)
     pygame.draw.rect(pantalla, COLOR_NEGRO, rect_win)
     pygame.draw.rect(pantalla, COLOR_LEGENDARIO, rect_win, 5)
     
-    mostrar_texto(pantalla, "¡PEZ GIGANTE!", COLOR_LEGENDARIO, ANCHO//2 - 100, ALTO//2 - 80, fuente_grande)
-    mostrar_texto(pantalla, "¡CLICKS RAPIDOS!", COLOR_BLANCO, ANCHO//2 - 140, ALTO//2 - 20, fuente)
+    mostrar_texto(pantalla, "POISSON GÉANT !", COLOR_LEGENDARIO, ANCHO//2 - 120, ALTO//2 - 80, fuente_grande)
+    mostrar_texto(pantalla, "CLICS RAPIDES !", COLOR_BLANCO, ANCHO//2 - 120, ALTO//2 - 20, fuente)
     
     progreso = min(1, boss_clicks_actuales / BOSS_CLICKS_NECESARIOS)
     pygame.draw.rect(pantalla, COLOR_BARRA_FONDO, (ANCHO//2 - 150, ALTO//2 + 30, 300, 30))
@@ -341,9 +358,9 @@ def reiniciar_juego():
 
 def pantalla_final(pantalla, score):
     pantalla.fill(COLOR_AZUL_AGUA)
-    mostrar_texto(pantalla, "¡FIN DEL JUEGO!", COLOR_AMARILLO, ANCHO // 2 - 150, ALTO // 2 - 50, fuente_grande)
-    mostrar_texto(pantalla, f"SCORE FINAL: {score}", COLOR_BLANCO, ANCHO // 2 - 100, ALTO // 2 + 20)
-    mostrar_texto(pantalla, "Presiona R para Reiniciar o ESC para salir", COLOR_BLANCO, ANCHO // 2 - 220, ALTO // 2 + 80)
+    mostrar_texto(pantalla, "FIN DU JEU !", COLOR_AMARILLO, ANCHO // 2 - 150, ALTO // 2 - 50, fuente_grande)
+    mostrar_texto(pantalla, f"SCORE FINAL : {score}", COLOR_BLANCO, ANCHO // 2 - 100, ALTO // 2 + 20)
+    mostrar_texto(pantalla, "Appuyez sur R pour Recommencer ou ESC pour Quitter", COLOR_BLANCO, ANCHO // 2 - 280, ALTO // 2 + 80)
     pygame.display.flip()
 
 def intentar_spawn_boss():
@@ -356,7 +373,7 @@ def intentar_spawn_boss():
             grupo_boss.add(boss)
 
 
-# --- 6. BUCLE PRINCIPAL (MAIN LOOP) ---
+# --- 6. BOUCLE PRINCIPALE (MAIN LOOP) ---
 
 ejecutando = True
 
@@ -364,7 +381,6 @@ while ejecutando:
     tiempo_actual = pygame.time.get_ticks()
     
     for evento in pygame.event.get():
-        # --- CAMBIO 3: SALIR CON ESC O QUIT ---
         if evento.type == pygame.QUIT:
             ejecutando = False
         if evento.type == pygame.KEYDOWN:
@@ -468,12 +484,12 @@ while ejecutando:
         grupo_boss.draw(pantalla) 
         
         segundos_restantes = max(0, TIEMPO_TOTAL_SEGUNDOS - int(tiempo_transcurrido))
-        mostrar_texto(pantalla, f"SCORE: {SCORE}", COLOR_AMARILLO, 10, 10)
-        mostrar_texto(pantalla, f"TIEMPO: {segundos_restantes}s", COLOR_AMARILLO, ANCHO - 150, 10)
+        mostrar_texto(pantalla, f"SCORE : {SCORE}", COLOR_AMARILLO, 10, 10)
+        mostrar_texto(pantalla, f"TEMPS : {segundos_restantes}s", COLOR_AMARILLO, ANCHO - 150, 10)
         
         if tiempo_actual < tiempo_desbloqueo:
             segundos_bloqueo = (tiempo_desbloqueo - tiempo_actual) // 1000 + 1
-            texto_aviso = f"¡BOOM! BLOQUEADO: {segundos_bloqueo}s"
+            texto_aviso = f"BOUM ! BLOQUÉ : {segundos_bloqueo}s"
             aviso_rect = pygame.Rect(ANCHO//2 - 250, ALTO//2 - 40, 500, 80)
             pygame.draw.rect(pantalla, COLOR_ROJO, aviso_rect)
             pygame.draw.rect(pantalla, COLOR_NEGRO, aviso_rect, 3)
